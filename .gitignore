@@ -1,0 +1,12 @@
+data
+.DS_Store
+.env
+glove
+experiments
+code/__pycache__/
+code/*.pyc
+
+command.txt
+
+img.pptx
+~$img.pptx
