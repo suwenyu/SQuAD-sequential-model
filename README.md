@@ -5,8 +5,7 @@ This project attempts to conduct a word-level BiLSTM to work in tandem with the 
 
 ### Dataset Description
 Standford Question Answering Dataset(SQuAD) is the main dataset that we are going to use for this project.It is a reading comprehension dataset, consisting of questions posed by crowdworkers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
-![img](./image/squad.png "img")
-![img1](./image/ans.png "img1")
+![img](./image/squad_ans.png "img")
 
 
 
