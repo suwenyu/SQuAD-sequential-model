@@ -40,12 +40,10 @@ data
 ```
 
 ### Run the RNN Model
-Must use python2 and tensorflow 1.x version
-Create virtual environment and install needed packages
+Install required packages
 ```bash
-$ python2 -m virtualenv .env
-$ source .env/bin/activate
-$ pip install -r requirements.txt
+pip install tensorflow
+pip install numpy
 ```
 
 Run the program
