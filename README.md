@@ -1,5 +1,15 @@
 # SQuAD_Sequential_Model
 
+This project attempts to conduct a word-level BiLSTM to work in tandem with the bi-direction attention flow mechanism for machine comprehension problem. Experiments conducted on the Stanford Question Answering Dataset(SQuAD) attest the effectiveness of our models and others.
+
+
+### Dataset Description
+Standford Question Answering Dataset(SQuAD) is the main dataset that we are going to use for this project.It is a reading comprehension dataset, consisting of questions posed by crowdworkers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
+![img](./image/squad.png "img")
+![img1](./image/ans.png "img1")
+
+
+
 ### Preprocessing
 Create a new folder called data
 ```bash
@@ -55,8 +65,10 @@ $ python code/main.py --experiment_name=bidaf_best --dropout=0.15 --batch_size=6
 ### Experiment Results
 | Model         | F1         |  EM         |
 | ------------- |:----------:| :---------: |
-| RNN + Bidaf   | **68.42%** | **53.69%**  |
-| RNN + Attn    | 47.57%     | 34.66%      |
+| LSTM + Bidaf  | **68.42%** | **53.69%**  |
+| LSTM + Attn   | 47.57%     | 34.66%      |
+| DRQA          | 78.9%      | 69.4%       |
+| BERT          | 91.8%      | 85.1%       |
 
 
 
