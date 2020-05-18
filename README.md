@@ -62,6 +62,10 @@ $ python code/main.py --experiment_name=bidaf_best --dropout=0.15 --batch_size=6
 ```
 
 ### Experiment Results
+![img](./image/dev_f1_all.png "img")
+![img1](./image/dev_em_all.png "img1")
+
+
 | Model         | F1         |  EM         |
 | ------------- |:----------:| :---------: |
 | LSTM + Bidaf  | **68.42%** | **53.69%**  |
