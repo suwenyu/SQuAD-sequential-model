@@ -9,6 +9,8 @@ import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops.rnn_cell import DropoutWrapper
 
+from attention import BasicAttn, BidafAttn, masked_softmax
+
 logging.basicConfig(level=logging.INFO)
 
 class SimpleSoftmaxLayer(tf.keras.Model):
@@ -17,32 +19,15 @@ class SimpleSoftmaxLayer(tf.keras.Model):
         self.fully_connected_layer = tf.keras.layers.Dense(1)
 
     def call(self, inputs):
-        logits = self.fully_connected_layer(inputs)
+        inp = inputs[0]
+        mask = inputs[1]
+
+        logits = self.fully_connected_layer(inp)
         logits = tf.squeeze(logits, axis=[2])
 
-        prob_dist = tf.nn.softmax(logits, 1)
-        return prob_dist
-
-
-
-class BasicAttn(tf.keras.Model):
-    def __init__(self, dropout_rate, key_vec_size, value_vec_size):
-        super().__init__()
-        self.dropout_rate = dropout_rate
-        self.key_vec_size = key_vec_size
-        self.value_vec_size = value_vec_size
-
-    def call(self, values, keys):
-        values_t = tf.transpose(values, perm=[0, 2, 1])
-        attn_logits = tf.matmul(keys, values_t) 
-
-        # attn_logits_mask = tf.expand_dims(values_mask, 1)
-        attn_dist = tf.nn.softmax(attn_logits, 2)
-        output = tf.matmul(attn_dist, values)
-
-        output = tf.nn.dropout(output, self.dropout_rate)
-
-        return attn_dist, output
+        masked_logits, prob_dist = masked_softmax(logits, mask, 1)
+        # prob_dist = tf.nn.softmax(logits, 1)
+        return masked_logits, prob_dist
 
 
 class QAModel(tf.keras.Model):
@@ -72,11 +57,15 @@ class QAModel(tf.keras.Model):
         self.softmax_layer_start = SimpleSoftmaxLayer()
         self.softmax_layer_end = SimpleSoftmaxLayer()
 
+        self.bilstm_attn = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(self.FLAGS.hidden_size_modeling, return_sequences=True), merge_mode="concat")
 
     def call(self, inputs):
     # def call(self, context_inp, context_mask, qn_inp, qn_mask):
         context_inp = inputs[0]
         qn_inp = inputs[2]
+        context_mask = inputs[1]
+        qn_mask = inputs[3]
+
         self.context_emb = embedding_ops.embedding_lookup(self.embeddings, context_inp)
         self.qn_emb = embedding_ops.embedding_lookup(self.embeddings, qn_inp)
         
@@ -89,14 +78,27 @@ class QAModel(tf.keras.Model):
         
         last_dim = context_hiddens.get_shape().as_list()[-1]
 
-        self.attn = BasicAttn(self.FLAGS.dropout, last_dim, last_dim)
-        _, attn_output = self.attn(question_hiddens, context_hiddens)
+        # attention
+        if self.FLAGS.bidaf_attention:
+            self.attn = BidafAttn(self.FLAGS.dropout, self.FLAGS.hidden_size_encoder * 2)
+            attn_output = self.attn(question_hiddens, qn_mask, context_hiddens, context_mask)
+            blended_reps = tf.concat([context_hiddens, attn_output], axis=2)
 
-        blended_reps = tf.concat([context_hiddens, attn_output], axis=2)
-        # print(blended_reps.shape)
+            attention_hidden = self.bilstm_attn(blended_reps)
+            blended_reps = attention_hidden
+
+
+        else:
+            self.attn = BasicAttn(self.FLAGS.dropout, last_dim, last_dim)
+            _, attn_output = self.attn(question_hiddens, qn_mask, context_hiddens)
+
+
+            blended_reps = tf.concat([context_hiddens, attn_output], axis=2)
+            # print(blended_reps.shape)
+        
         blended_reps_final = self.fully_connected_layer(blended_reps)
         
-        probdist_start = self.softmax_layer_start(blended_reps_final)
-        probdist_end = self.softmax_layer_end(blended_reps_final)
+        logits_start, probdist_start = self.softmax_layer_start([blended_reps_final, context_mask])
+        logits_end, probdist_end = self.softmax_layer_end([blended_reps_final, context_mask])
 
-        return probdist_start, probdist_end
+        return logits_start, logits_end

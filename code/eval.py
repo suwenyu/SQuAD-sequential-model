@@ -93,7 +93,7 @@ def evaluate(model, word2id, FLAGS, dev_context_path, dev_qn_path, dev_ans_path)
     em_total /= example_num
 
     toc = time.time()
-    logging.info("Calculating F1/EM for %i examples in %s set took %.2f seconds" % (example_num, dataset, toc-tic))
+    print("Calculating F1/EM for %i examples in %s set took %.2f seconds" % (example_num, "dev", toc-tic))
 
     return f1_total, em_total
 

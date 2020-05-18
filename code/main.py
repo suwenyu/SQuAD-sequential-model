@@ -42,13 +42,13 @@ parser.add_argument("--question_len", dest="question_len", default=30, help="The
 parser.add_argument("--embedding_size", dest="embedding_size", default=100, help="Size of the pretrained word vectors. This needs to be one of the available GloVe dimensions: 50/100/200/300", type=int)
 
 # Bool FLAGS to select different models
-parser.add_argument("--do_char_embed", dest="do_char_embed", default=False, help="Include char embedding -True/False", type=bool)
-parser.add_argument("--add_highway_layer", dest="add_highway_layer", default=True, help="Add highway layer to concatenated embeddings -True/False", type=bool)
-parser.add_argument("--cnn_encoder", dest="cnn_encoder", default=False, help="Add CNN Encoder Layer -True/False", type=bool)
-parser.add_argument("--rnet_attention", dest="rnet_attention", default=False, help="Perform RNET QP and SM attention-True/False", type=bool)
-parser.add_argument("--bidaf_attention", dest="bidaf_attention", default=True, help="Use BIDAF Attention-True/False", type=bool)
-parser.add_argument("--answer_pointer_RNET", dest="answer_pointer_RNET", default=False, help="Use Answer Pointer from RNET-True/False", type=bool)
-parser.add_argument("--smart_span", dest="smart_span", default=True, help="Select start and end idx based on smart conditions-True/False", type=bool)
+parser.add_argument("--do_char_embed", dest="do_char_embed", help="Include char embedding -True/False", action='store_true')
+parser.add_argument("--add_highway_layer", dest="add_highway_layer", help="Add highway layer to concatenated embeddings -True/False", action='store_true')
+parser.add_argument("--cnn_encoder", dest="cnn_encoder", help="Add CNN Encoder Layer -True/False", action='store_true')
+parser.add_argument("--rnet_attention", dest="rnet_attention", help="Perform RNET QP and SM attention-True/False", action='store_true')
+parser.add_argument("--bidaf_attention", dest="bidaf_attention", help="Use BIDAF Attention-True/False", action='store_true')
+parser.add_argument("--answer_pointer_RNET", dest="answer_pointer_RNET", help="Use Answer Pointer from RNET-True/False", action='store_true')
+parser.add_argument("--smart_span", dest="smart_span", help="Select start and end idx based on smart conditions-True/False", action='store_true')
 
 
 # Hyperparameters for BIDAF
@@ -72,6 +72,7 @@ parser.add_argument("--json_out_path", dest="json_out_path", default="prediction
 FLAGS = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu)
 
+# print(FLAGS)
 
 def main():
     print ("Your TensorFlow version: %s" % tf.__version__)
@@ -100,7 +101,7 @@ def main():
     
     global_step = 1
     epoch = 0
-    logging.info("Beginning training loop...")
+    print("Beginning training loop...")
 
     # Initialize model
     model = QAModel(FLAGS, id2word, word2id, emb_matrix)
@@ -127,17 +128,20 @@ def main():
                 loss_end = tf.reduce_mean(loss_end)
 
                 loss = loss_start + loss_end
-                print("loss %f" % (loss.numpy()))
+                # print("loss %f" % (loss.numpy()))
             
             grads = tape.gradient(loss, model.variables)
             optimizer.apply_gradients(grads_and_vars=zip(grads, model.variables))
 
             if global_step % FLAGS.eval_every == 0 :
-                print("evaluate")
-                evaluate(model, word2id, FLAGS, dev_context_path, dev_qn_path, dev_ans_path)
+                print("==== start evaluating ==== ")
+                dev_f1, dev_em = evaluate(model, word2id, FLAGS, dev_context_path, dev_qn_path, dev_ans_path)
+                print("Epoch %d, Iter %d, Dev F1 score: %f, Dev EM score: %f" % (epoch, global_step, dev_f1, dev_em))
+                print("==========================")
+            global_step += 1
 
         epoch_toc = time.time()
-        logging.info("End of epoch %i. Time for epoch: %f" % (epoch, epoch_toc-epoch_tic))
+        print("End of epoch %i. Time for epoch: %f" % (epoch, epoch_toc-epoch_tic))
 
     sys.stdout.flush()
 
